@@ -2,10 +2,36 @@ use std::sync::Arc;
 
 use anyhow::{Ok, Result};
 use rustymine_daemon::{router, state::AppState};
-use tracing::Level;
+use tracing::{Level, debug, error, info, warn};
+
+pub const APP_NAME: &str = env!("CARGO_PKG_NAME");
+pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+pub const BUILD_DATE: &str = env!("BUILD_DATE");
+pub const GIT_HASH: &str = env!("GIT_HASH");
+pub const GIT_SUFFIX: &str = env!("GIT_SUFFIX");
+
+pub const ASCII_LOGO: &str = "
+██████╗ ██╗   ██╗███████╗████████╗██╗   ██╗███╗   ███╗██╗███╗   ██╗███████╗
+██╔══██╗██║   ██║██╔════╝╚══██╔══╝╚██╗ ██╔╝████╗ ████║██║████╗  ██║██╔════╝
+██████╔╝██║   ██║███████╗   ██║    ╚████╔╝ ██╔████╔██║██║██╔██╗ ██║█████╗  
+██╔══██╗██║   ██║╚════██║   ██║     ╚██╔╝  ██║╚██╔╝██║██║██║╚██╗██║██╔══╝  
+██║  ██║╚██████╔╝███████║   ██║      ██║   ██║ ╚═╝ ██║██║██║ ╚████║███████╗
+╚═╝  ╚═╝ ╚═════╝ ╚══════╝   ╚═╝      ╚═╝   ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝";
+
+pub const BUILD_MODE: &str = if cfg!(debug_assertions) {
+    "development"
+} else {
+    "release"
+};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    println!("{}", ASCII_LOGO);
+    println!("\nStarting {} v{}-{}", APP_NAME, APP_VERSION, BUILD_MODE);
+    println!("Git revision: {}{}", GIT_HASH, GIT_SUFFIX);
+    println!("Built on:     {}\n", BUILD_DATE);
+
     let subscriber = tracing_subscriber::fmt()
         .with_max_level(Level::DEBUG)
         .finish();
