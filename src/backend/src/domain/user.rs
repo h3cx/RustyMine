@@ -1,16 +1,29 @@
 use std::fmt::Display;
 
 use axum::response::IntoResponse;
+use lazy_static::lazy_static;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
+
+use crate::domain::validation;
 
 use crate::auth;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Validate)]
 pub struct NewUser {
+    #[validate(
+        length(min = 4, max = 16),
+        custom(function = "validation::validate_alphanum")
+    )]
     username: String,
+    #[validate(email)]
     email: Option<String>,
+    #[validate(length(min = 8))]
     password: String,
+    #[validate(length(min = 1, max = 64))]
     first_name: Option<String>,
+    #[validate(length(min = 1, max = 64))]
     last_name: Option<String>,
 }
 
