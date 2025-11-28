@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use anyhow::{Ok, Result};
-use rustymine_daemon::router;
+use rustymine_daemon::{router, state::AppState};
 use tracing::Level;
 
 #[tokio::main]
@@ -10,9 +12,12 @@ async fn main() -> Result<()> {
 
     tracing::subscriber::set_global_default(subscriber)?;
 
-    let app_result = router::init_router().await?;
+    let state = Arc::new(AppState::new());
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app_result).await.unwrap();
+    let app_result = router::init_router(state.clone()).await;
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+
+    axum::serve(listener, app_result).await?;
     Ok(())
 }

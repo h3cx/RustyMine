@@ -1,14 +1,33 @@
 pub mod middleware;
-use anyhow::Result;
-use axum::{Json, Router, http::StatusCode, middleware::from_fn, routing::get};
-use serde_json::{Value, json};
+pub mod user_routes;
 
-pub async fn init_router() -> Result<Router> {
-    let router = Router::new().route(
-        "/api/ping",
-        get(ping).layer(from_fn(middleware::auth_middleware)),
-    );
-    Ok(router)
+use axum::{
+    Json, Router,
+    http::StatusCode,
+    routing::{get, post},
+};
+use serde_json::{Value, json};
+use std::sync::Arc;
+use tower::{Layer, ServiceBuilder};
+
+use crate::state::AppState;
+
+pub async fn init_router(app_state: Arc<AppState>) -> Router {
+    Router::new()
+        .route(
+            "/api/ping",
+            get(ping).layer(
+                ServiceBuilder::new()
+                    .layer(middleware::cors())
+                    .layer(axum::middleware::from_fn(middleware::auth)),
+            ),
+        )
+        .route(
+            "/api/user/create",
+            post(user_routes::create)
+                .layer(ServiceBuilder::new().layer(middleware::cors()))
+                .with_state(app_state),
+        )
 }
 
 async fn ping() -> Result<Json<Value>, StatusCode> {
