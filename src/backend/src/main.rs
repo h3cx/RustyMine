@@ -38,7 +38,6 @@ async fn main() -> Result<()> {
 
     tracing::subscriber::set_global_default(subscriber)?;
 
-    debug!(logo = ASCII_LOGO, "render application banner");
     info!(
         app = APP_NAME,
         version = APP_VERSION,
