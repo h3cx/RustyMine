@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::domain::user::InternalUser;
+use crate::domain::user::InternalNewUser;
 
 pub struct AppState {
-    pub users: HashMap<String, InternalUser>,
+    pub users: HashMap<String, InternalNewUser>,
 }
 
 impl AppState {

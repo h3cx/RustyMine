@@ -28,7 +28,17 @@ pub struct NewUser {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct InternalNewUser {
+    username: String,
+    email: Option<String>,
+    password_hash: String,
+    first_name: Option<String>,
+    last_name: Option<String>,
+}
+
+#[derive(Debug, Clone)]
 pub struct InternalUser {
+    id: i64,
     username: String,
     email: Option<String>,
     password_hash: String,
@@ -38,6 +48,7 @@ pub struct InternalUser {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct User {
+    id: i64,
     username: String,
     email: Option<String>,
     first_name: Option<String>,
@@ -49,7 +60,7 @@ pub enum UserConversionError {
     HashFailed(password_hash::Error),
 }
 
-impl TryFrom<NewUser> for InternalUser {
+impl TryFrom<NewUser> for InternalNewUser {
     type Error = UserConversionError;
     fn try_from(value: NewUser) -> Result<Self, Self::Error> {
         let password_hash =
@@ -67,6 +78,7 @@ impl TryFrom<NewUser> for InternalUser {
 impl From<InternalUser> for User {
     fn from(value: InternalUser) -> Self {
         Self {
+            id: value.id,
             username: value.username,
             email: value.email,
             first_name: value.first_name,

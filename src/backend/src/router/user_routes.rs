@@ -6,7 +6,7 @@ use tracing::{debug, error, info, warn};
 use validator::Validate;
 
 use crate::{
-    domain::user::{InternalUser, NewUser, User},
+    domain::user::{InternalNewUser, NewUser, User},
     state::AppState,
 };
 
@@ -18,7 +18,7 @@ pub async fn create(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    let internal = InternalUser::try_from(new_user).map_err(|e| {
+    let internal = InternalNewUser::try_from(new_user).map_err(|e| {
         error!("Conversion to InternalUser failed: {e}");
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
