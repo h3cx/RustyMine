@@ -7,6 +7,7 @@ A Rust-based Minecraft server manager.
 - [Usage](#usage)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
+- [Use of AI](#use-of-ai)
 - [License](#license)
 
 ## Background
@@ -42,6 +43,9 @@ A CLI client that communicates with the REST API is planned, but not yet on the 
 I am not accepting pull requests at this time.  
 If you believe you can provide meaningful help, feel free to reach out directly:  
 **h3cx@h3cx.dev**
+
+## Use of AI
+In the scope of this project AI is currently only being used to standardize command line output with the `info!, warn!, error!` and `debug!` macros from tracing.
 
 ## License
 [PolyForm Noncommercial License 1.0.0](LICENSE)
