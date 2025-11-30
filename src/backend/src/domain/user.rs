@@ -4,6 +4,7 @@ use axum::response::IntoResponse;
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use sqlx::prelude::FromRow;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -30,25 +31,25 @@ pub struct NewUser {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct InternalNewUser {
-    uuid: Uuid,
-    username: String,
-    email: Option<String>,
-    password_hash: String,
-    first_name: Option<String>,
-    last_name: Option<String>,
+    pub uuid: Uuid,
+    pub username: String,
+    pub email: Option<String>,
+    pub password_hash: String,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, FromRow)]
 pub struct InternalUser {
-    uuid: Uuid,
-    username: String,
-    email: Option<String>,
-    password_hash: String,
-    first_name: Option<String>,
-    last_name: Option<String>,
+    pub uuid: Uuid,
+    pub username: String,
+    pub email: Option<String>,
+    pub password_hash: String,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct User {
     uuid: Uuid,
     username: String,

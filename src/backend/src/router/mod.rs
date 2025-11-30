@@ -23,10 +23,13 @@ pub async fn init_router(app_state: Arc<AppState>) -> Router {
             ),
         )
         .route(
-            "/api/user/create",
+            "/api/users",
             post(user_routes::create)
                 .layer(ServiceBuilder::new().layer(middleware::cors()))
-                .with_state(app_state),
+                .with_state(app_state.clone())
+                .get(user_routes::get_all)
+                .layer(ServiceBuilder::new().layer(middleware::cors()))
+                .with_state(app_state.clone()),
         )
 }
 
