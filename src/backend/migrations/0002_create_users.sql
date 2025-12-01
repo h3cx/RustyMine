@@ -1,4 +1,4 @@
-CREATE TABLE user_permissions (
+CREATE TABLE users (
   uuid UUID PRIMARY KEY,
   username VARCHAR NOT NULL UNIQUE,
   email VARCHAR UNIQUE,

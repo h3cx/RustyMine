@@ -4,39 +4,54 @@ pub mod user_routes;
 use axum::{
     Json, Router,
     http::StatusCode,
+    middleware::from_fn_with_state,
     routing::{get, post},
 };
 use serde_json::{Value, json};
 use std::sync::Arc;
-use tower::ServiceBuilder;
+use tower::{Layer, ServiceBuilder};
 
 use crate::prelude::*;
 use crate::state::AppState;
+
+macro_rules! middleware {
+    (cors) => {
+        crate::router::middleware::cors()
+    };
+    (cors_auth, $state:expr) => {
+        (
+            crate::router::middleware::cors(),
+            axum::middleware::from_fn_with_state($state, crate::router::middleware::auth),
+        )
+    };
+}
 
 pub async fn init_router(app_state: Arc<AppState>) -> Router {
     info!("router initialization started");
 
     let router = Router::new()
-        .route(
-            "/api/ping",
-            get(ping).layer(
-                ServiceBuilder::new()
-                    .layer(middleware::cors())
-                    .layer(axum::middleware::from_fn(middleware::auth)),
-            ),
-        )
+        .route("/api/ping", get(ping).layer(middleware!(cors)))
         .route(
             "/api/users",
             post(user_routes::create)
-                .layer(ServiceBuilder::new().layer(middleware::cors()))
+                .layer(middleware!(cors_auth, app_state.clone()))
                 .with_state(app_state.clone())
                 .get(user_routes::get_all)
-                .layer(ServiceBuilder::new().layer(middleware::cors()))
+                .layer(middleware!(cors_auth, app_state.clone()))
                 .with_state(app_state.clone()),
         )
-        .route("/api/users/{uuid}", get(user_routes::get_uuid))
-        .layer(ServiceBuilder::new().layer(middleware::cors()))
-        .with_state(app_state.clone());
+        .route(
+            "/api/users/{uuid}",
+            get(user_routes::get_uuid)
+                .layer(middleware!(cors_auth, app_state.clone()))
+                .with_state(app_state.clone()),
+        )
+        .route(
+            "/api/login",
+            post(user_routes::login)
+                .layer(middleware!(cors))
+                .with_state(app_state.clone()),
+        );
 
     info!("router initialization completed");
     router

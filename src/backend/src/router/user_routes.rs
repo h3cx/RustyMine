@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::{domain::api::LoginData, prelude::*};
 use std::sync::Arc;
 
 use crate::{
@@ -39,4 +39,12 @@ pub async fn get_uuid(
     let user = core::user_routines::get_safe_by_uuid(state, uuid).await?;
     debug!("get user by uuid route completed");
     Ok(Json(user))
+}
+
+pub async fn login(
+    State(state): State<Arc<AppState>>,
+    Json(login_data): Json<LoginData>,
+) -> Result<Json<String>, StatusCode> {
+    let result = core::user_routines::login(state, login_data).await?;
+    Ok(Json(result))
 }

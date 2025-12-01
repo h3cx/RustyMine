@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
@@ -9,27 +9,19 @@ pub enum UserActions {
     Login,
 }
 
-#[derive(Debug, Clone, Deserialize, FromRow)]
+#[derive(Debug, Clone, Deserialize, Serialize, FromRow)]
 pub struct UserPermissions {
-    pub uuid: Uuid,
     pub root: bool,
     pub manage_users: bool,
     pub login: bool,
 }
 
-#[derive(Debug, Clone, Deserialize, FromRow)]
-pub struct MemberUserPermissions {
-    pub root: bool,
-    pub manage_users: bool,
-    pub login: bool,
-}
-
-impl From<UserPermissions> for MemberUserPermissions {
-    fn from(value: UserPermissions) -> Self {
+impl Default for UserPermissions {
+    fn default() -> Self {
         Self {
-            root: value.root,
-            manage_users: value.manage_users,
-            login: value.login,
+            root: false,
+            manage_users: false,
+            login: false,
         }
     }
 }

@@ -4,8 +4,12 @@ use uuid::Uuid;
 
 use crate::{domain::user_prems::UserPermissions, prelude::*};
 
-pub async fn create(pool: &PgPool, new_perms: UserPermissions) -> Result<UserPermissions> {
-    debug!(user_uuid = %new_perms.uuid, "insert user permissions started");
+pub async fn create(
+    pool: &PgPool,
+    uuid: Uuid,
+    new_perms: UserPermissions,
+) -> Result<UserPermissions> {
+    debug!(user_uuid = %uuid, "insert user permissions started");
     let perms = sqlx::query_as::<_, UserPermissions>(
         r#"
     INSERT INTO user_permissions (uuid, root, manage_users, login)
@@ -13,14 +17,14 @@ pub async fn create(pool: &PgPool, new_perms: UserPermissions) -> Result<UserPer
     RETURNING uuid, root, manage_users, login
     "#,
     )
-    .bind(new_perms.uuid)
+    .bind(uuid)
     .bind(new_perms.root)
     .bind(new_perms.manage_users)
     .bind(new_perms.login)
     .fetch_one(pool)
     .await?;
 
-    debug!(user_uuid = %perms.uuid, "insert user permissions completed");
+    debug!(user_uuid = %uuid, "insert user permissions completed");
     Ok(perms)
 }
 

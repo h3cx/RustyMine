@@ -43,6 +43,21 @@ pub async fn get_by_uuid(pool: &PgPool, uuid: Uuid) -> Result<Option<InternalUse
     Ok(user)
 }
 
+pub async fn get_by_username(pool: &PgPool, username: &str) -> Result<Option<InternalUser>> {
+    debug!(username = %username, "fetch user by username started");
+    let user = sqlx::query_as::<_, InternalUser>(
+        r#"
+    SELECT uuid, username, email, password_hash, first_name, last_name FROM users WHERE username = $1
+    "#,
+    )
+    .bind(username)
+    .fetch_optional(pool)
+    .await?;
+
+    debug!(username = %username, "fetch user by username completed");
+    Ok(user)
+}
+
 pub async fn get_safe_by_uuid(pool: &PgPool, uuid: Uuid) -> Result<Option<User>> {
     debug!(user_uuid = %uuid, "fetch safe user by uuid started");
     let user = sqlx::query_as::<_, User>(
@@ -55,6 +70,21 @@ pub async fn get_safe_by_uuid(pool: &PgPool, uuid: Uuid) -> Result<Option<User>>
     .await?;
 
     debug!(user_uuid = %uuid, "fetch safe user by uuid completed");
+    Ok(user)
+}
+
+pub async fn get_safe_by_username(pool: &PgPool, username: &str) -> Result<Option<User>> {
+    debug!(username = %username, "fetch safe user by username started");
+    let user = sqlx::query_as::<_, User>(
+        r#"
+    SELECT uuid, username, email, first_name, last_name FROM users WHERE uuid = $1
+    "#,
+    )
+    .bind(username)
+    .fetch_optional(pool)
+    .await?;
+
+    debug!(username = %username, "fetch safe user by username completed");
     Ok(user)
 }
 
@@ -106,5 +136,24 @@ pub async fn exists_by_uuid(pool: &PgPool, uuid: Uuid) -> Result<bool> {
     .await?;
 
     debug!(user_uuid = %uuid, "check user existence completed");
+    Ok(exists)
+}
+
+pub async fn exists_by_username(pool: &PgPool, username: &str) -> Result<bool> {
+    debug!(username = %username, "check user existence started");
+    let exists = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1
+            FROM users
+            WHERE uuid = $1
+        )
+        "#,
+    )
+    .bind(username)
+    .fetch_one(pool)
+    .await?;
+
+    debug!(username = %username, "check user existence completed");
     Ok(exists)
 }

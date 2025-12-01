@@ -5,7 +5,7 @@ use sqlx::prelude::FromRow;
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::domain::user_prems::{MemberUserPermissions, UserPermissions};
+use crate::domain::user_prems::UserPermissions;
 use crate::domain::validation;
 
 use crate::auth;
@@ -25,7 +25,7 @@ pub struct NewUser {
     first_name: Option<String>,
     #[validate(length(min = 1, max = 64))]
     last_name: Option<String>,
-    permissions: Option<MemberUserPermissions>,
+    permissions: UserPermissions,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -36,7 +36,7 @@ pub struct InternalNewUser {
     pub password_hash: String,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
-    pub permissions: Option<MemberUserPermissions>,
+    pub permissions: UserPermissions,
 }
 
 #[derive(Debug, Clone, Deserialize, FromRow)]
@@ -48,16 +48,18 @@ pub struct InternalUser {
     pub first_name: Option<String>,
     pub last_name: Option<String>,
     #[sqlx(skip)]
-    pub permissions: Option<MemberUserPermissions>,
+    pub permissions: UserPermissions,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct User {
-    uuid: Uuid,
-    username: String,
-    email: Option<String>,
-    first_name: Option<String>,
-    last_name: Option<String>,
+    pub uuid: Uuid,
+    pub username: String,
+    pub email: Option<String>,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    #[sqlx(skip)]
+    pub permissions: UserPermissions,
 }
 
 #[derive(Debug)]
@@ -91,6 +93,7 @@ impl From<InternalUser> for User {
             email: value.email,
             first_name: value.first_name,
             last_name: value.last_name,
+            permissions: value.permissions.clone(),
         }
     }
 }
@@ -105,6 +108,11 @@ impl Display for UserConversionError {
 
 impl InternalUser {
     pub fn attach_permissions(&mut self, permissions: UserPermissions) {
-        self.permissions = Some(MemberUserPermissions::from(permissions));
+        self.permissions = UserPermissions::from(permissions);
+    }
+}
+impl User {
+    pub fn attach_permissions(&mut self, permissions: UserPermissions) {
+        self.permissions = UserPermissions::from(permissions);
     }
 }

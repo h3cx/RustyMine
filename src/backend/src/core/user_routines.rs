@@ -1,11 +1,12 @@
 use crate::{
-    domain::{user::InternalUser, user_prems::UserPermissions},
+    auth::{gen_jwt, verify_password},
+    domain::{api::LoginData, user::InternalUser, user_prems::UserPermissions},
     infra::db,
     prelude::*,
 };
 use std::sync::Arc;
 
-use axum::http::StatusCode;
+use axum::{extract::State, http::StatusCode};
 use uuid::Uuid;
 use validator::Validate;
 
@@ -15,6 +16,35 @@ use crate::{
     domain::user::{InternalNewUser, NewUser, User},
     state::AppState,
 };
+
+pub async fn login(state: Arc<AppState>, login_data: LoginData) -> Result<String, StatusCode> {
+    let user = db::user::get_by_username(&state.db_pool, &login_data.username)
+        .await
+        .map_err(|e| {
+            error!("Failed fetching user during login: {}", e);
+            return StatusCode::INTERNAL_SERVER_ERROR;
+        })?;
+    let user = match user {
+        Some(value) => value,
+        None => return Err(StatusCode::UNAUTHORIZED),
+    };
+
+    let verify = verify_password(&login_data.password, &user.password_hash).map_err(|e| {
+        error!("Failed to verify password hash: {}", e);
+        return StatusCode::INTERNAL_SERVER_ERROR;
+    })?;
+
+    if !verify {
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    let token = gen_jwt(user.username.clone()).map_err(|e| {
+        error!("Failed to generate JWT: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    Ok(token)
+}
 
 pub async fn create(state: Arc<AppState>, new_user: NewUser) -> Result<User, StatusCode> {
     debug!("create user started");
@@ -29,12 +59,27 @@ pub async fn create(state: Arc<AppState>, new_user: NewUser) -> Result<User, Sta
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
 
-    let created_user = db::user::create(&state.db_pool, internal)
+    let mut created_user = db::user::create(&state.db_pool, internal.clone())
         .await
         .map_err(|e| {
             error!(error = %e, "create user failed");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
+
+    let perms = db::perms::create(
+        &state.db_pool,
+        created_user.uuid.clone(),
+        internal.permissions,
+    )
+    .await
+    .map_err(|e| {
+        error!(error = %e, "create user permissions entry failed");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    created_user.attach_permissions(perms);
+
+    let created_user = created_user;
 
     info!(user_uuid = %created_user.uuid, "user created");
     Ok(User::from(created_user))
@@ -55,17 +100,40 @@ pub async fn get_safe_by_uuid(
     uuid: Uuid,
 ) -> Result<Option<User>, StatusCode> {
     debug!(user_uuid = %uuid, "fetch user by uuid started");
-    let user = db::user::get_safe_by_uuid(&state.db_pool, uuid.clone())
+
+    let mut user = match db::user::get_safe_by_uuid(&state.db_pool, uuid)
         .await
         .map_err(|e| {
             error!(error = %e, user_uuid = %uuid, "fetch user failed");
             StatusCode::INTERNAL_SERVER_ERROR
+        })? {
+        Some(u) => u,
+        None => return Ok(None),
+    };
+
+    let perms = db::perms::get_by_uuid(&state.db_pool, uuid)
+        .await
+        .map_err(|e| {
+            error!(error = %e, user_uuid = %uuid, "fetch permissions failed");
+            StatusCode::INTERNAL_SERVER_ERROR
         })?;
-    Ok(user)
+
+    match perms {
+        Some(perms) => {
+            user.attach_permissions(perms);
+        }
+        None => {
+            error!(user_uuid = %uuid, "permissions missing for existing user");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    Ok(Some(user))
 }
 
 pub async fn get_by_uuid(state: Arc<AppState>, uuid: Uuid) -> anyhow::Result<Option<InternalUser>> {
     debug!(user_uuid = %uuid, "fetch internal user started");
+
     let mut user = match db::user::get_by_uuid(&state.db_pool, uuid)
         .await
         .context("failed to fetch user by uuid")?
@@ -74,48 +142,80 @@ pub async fn get_by_uuid(state: Arc<AppState>, uuid: Uuid) -> anyhow::Result<Opt
         None => return Ok(None),
     };
 
-    let perms_exist = db::perms::exists_by_uuid(&state.db_pool, user.uuid)
+    let perms = db::perms::get_by_uuid(&state.db_pool, user.uuid)
         .await
-        .context("failed to check if user permissions exist")?;
+        .context("failed to fetch user permissions")?;
 
-    if perms_exist {
-        if let Some(perms) = db::perms::get_by_uuid(&state.db_pool, user.uuid)
-            .await
-            .context("failed to fetch user permissions")?
-        {
+    match perms {
+        Some(perms) => {
             user.attach_permissions(perms);
         }
+        None => {}
     }
-
-    let user = user;
 
     Ok(Some(user))
 }
 
-pub async fn set_perms(
+pub async fn get_safe_by_username(
     state: Arc<AppState>,
-    user_perms: UserPermissions,
-) -> Result<(), StatusCode> {
-    debug!(user_uuid = %user_perms.uuid, "assign permissions started");
-    let exists = db::user::exists_by_uuid(&state.db_pool, user_perms.uuid)
+    username: &str,
+) -> Result<Option<User>, StatusCode> {
+    debug!(%username, "fetch user by username started");
+
+    let mut user = match db::user::get_safe_by_username(&state.db_pool, username)
         .await
         .map_err(|e| {
-            error!(error = %e, user_uuid = %user_perms.uuid, "verify user exists failed");
+            error!(error = %e, %username, "fetch user by username failed");
+            StatusCode::INTERNAL_SERVER_ERROR
+        })? {
+        Some(u) => u,
+        None => return Ok(None),
+    };
+
+    let perms = db::perms::get_by_uuid(&state.db_pool, user.uuid)
+        .await
+        .map_err(|e| {
+            error!(error = %e, user_uuid = %user.uuid, "fetch permissions failed");
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
 
-    if !exists {
-        warn!(user_uuid = %user_perms.uuid, "assign permissions skipped for missing user");
-        return Err(StatusCode::BAD_REQUEST);
+    match perms {
+        Some(perms) => {
+            user.attach_permissions(perms);
+        }
+        None => {
+            error!(user_uuid = %user.uuid, "permissions missing for existing user");
+            return Err(StatusCode::INTERNAL_SERVER_ERROR);
+        }
     }
 
-    db::perms::create(&state.db_pool, user_perms)
-        .await
-        .map_err(|e| {
-            error!(error = %e, "create user permissions entry failed");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    Ok(Some(user))
+}
 
-    info!("user permissions assigned");
-    Ok(())
+pub async fn get_by_username(
+    state: Arc<AppState>,
+    username: &str,
+) -> anyhow::Result<Option<InternalUser>> {
+    debug!(%username, "fetch internal user by username started");
+
+    let mut user = match db::user::get_by_username(&state.db_pool, username)
+        .await
+        .context("failed to fetch user by username")?
+    {
+        Some(u) => u,
+        None => return Ok(None),
+    };
+
+    let perms = db::perms::get_by_uuid(&state.db_pool, user.uuid)
+        .await
+        .context("failed to fetch user permissions")?;
+
+    match perms {
+        Some(perms) => {
+            user.attach_permissions(perms);
+        }
+        None => {}
+    }
+
+    Ok(Some(user))
 }
