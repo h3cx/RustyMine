@@ -146,7 +146,7 @@ pub async fn exists_by_username(pool: &PgPool, username: &str) -> Result<bool> {
         SELECT EXISTS(
             SELECT 1
             FROM users
-            WHERE uuid = $1
+            WHERE username = $1
         )
         "#,
     )

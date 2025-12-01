@@ -116,3 +116,16 @@ impl User {
         self.permissions = UserPermissions::from(permissions);
     }
 }
+
+impl NewUser {
+    pub fn new_root() -> Self {
+        Self {
+            username: "root".to_string(),
+            email: None,
+            password: "rootpassword".to_string(),
+            first_name: None,
+            last_name: None,
+            permissions: UserPermissions::root(),
+        }
+    }
+}

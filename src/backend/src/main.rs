@@ -1,7 +1,11 @@
 use std::sync::Arc;
 
 use anyhow::{Ok, Result};
-use rustymine_daemon::{config::AppCfg, router, state::AppState};
+use rustymine_daemon::{
+    config::AppCfg,
+    router,
+    state::{AppState, check_root},
+};
 use tracing::{Level, debug, info};
 
 pub const APP_NAME: &str = env!("CARGO_PKG_NAME");
@@ -57,6 +61,7 @@ async fn main() -> Result<()> {
     };
 
     let state = Arc::new(AppState::new(&config).await);
+    check_root(state.clone()).await;
 
     let app_result = router::init_router(state.clone()).await;
 

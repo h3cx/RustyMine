@@ -1,6 +1,10 @@
-use std::process::exit;
+use std::{process::exit, sync::Arc};
 
-use crate::prelude::*;
+use crate::{
+    core,
+    domain::user::{InternalNewUser, NewUser},
+    prelude::*,
+};
 
 use sqlx::PgPool;
 
@@ -31,6 +35,30 @@ impl AppState {
             })
             .unwrap();
         info!("database ready after connect and migrate");
+
         Self { db_pool: db_pool }
+    }
+}
+
+pub async fn check_root(state: Arc<AppState>) {
+    let root_exists = db::user::exists_by_username(&state.db_pool, "root")
+        .await
+        .map_err(|e| {
+            error!(error = %e, "check root exists failed");
+            exit(23);
+        })
+        .unwrap();
+
+    if !root_exists {
+        info!("No root user found in db, creating one");
+        let new_root = NewUser::new_root();
+        core::user_routines::create(state, new_root)
+            .await
+            .map_err(|e| {
+                error!(error = %e, "create root failed");
+                exit(24);
+            })
+            .unwrap();
+        info!("New default root created username: root, password: rootpassword");
     }
 }

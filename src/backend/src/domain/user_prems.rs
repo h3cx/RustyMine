@@ -25,3 +25,13 @@ impl Default for UserPermissions {
         }
     }
 }
+
+impl UserPermissions {
+    pub fn root() -> Self {
+        Self {
+            root: true,
+            manage_users: true,
+            login: true,
+        }
+    }
+}
