@@ -8,7 +8,6 @@ A Rust-based Minecraft server manager.
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [Use of AI](#use-of-ai)
-- [License](#license)
 
 ## Background
 After a forced restart corrupted my previous server manager, [Crafty 4](https://gitlab.com/crafty-controller/crafty-4), I started looking for alternatives that were:
@@ -47,5 +46,9 @@ If you believe you can provide meaningful help, feel free to reach out directly:
 ## Use of AI
 In the scope of this project AI is currently only being used to standardize command line output with the `info!, warn!, error!` and `debug!` macros from tracing.
 
-## License
-[PolyForm Noncommercial License 1.0.0](LICENSE)
+---
+
+<div align="center">
+<a href="./LICENSE">PolyForm Noncommercial License</a> • H3cx  
+Built on coffee, late nights, and a fully up-to-date Arch install (btw).
+</div>
