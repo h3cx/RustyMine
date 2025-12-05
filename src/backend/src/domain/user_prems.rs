@@ -1,10 +1,11 @@
+use std::collections::HashSet;
+
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum UserActions {
-    Root,
     ManageUsers,
     Login,
 }
@@ -12,16 +13,14 @@ pub enum UserActions {
 #[derive(Debug, Clone, Deserialize, Serialize, FromRow)]
 pub struct UserPermissions {
     pub root: bool,
-    pub manage_users: bool,
-    pub login: bool,
+    pub permissions: HashSet<UserActions>,
 }
 
 impl Default for UserPermissions {
     fn default() -> Self {
         Self {
             root: false,
-            manage_users: false,
-            login: false,
+            permissions: Vec::new(),
         }
     }
 }
@@ -30,8 +29,7 @@ impl UserPermissions {
     pub fn root() -> Self {
         Self {
             root: true,
-            manage_users: true,
-            login: true,
+            permissions: Vec::new(),
         }
     }
 }

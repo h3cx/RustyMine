@@ -22,7 +22,7 @@ tower = { version = "0.5.2", features = ["tokio", "tracing"] }
 tower-http = { version = "0.6.7", features = ["cors"] }
 tracing = { version = "0.1.43", features = ["max_level_debug"] }
 tracing-subscriber = "0.3.22"
-uuid = { version = "1.18.1", features = ["v4", "serde"] }
+uuid = { version = "1.19.0", features = ["v4", "serde"] }
 validator = { version = "0.20.0", features = ["derive"] }
 mineguard = {path = "../../../MineGuard/"}
 

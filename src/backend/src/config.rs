@@ -1,7 +1,10 @@
 use axum::http::Method;
 use std::collections::HashMap;
 
-use crate::domain::user_prems::UserActions;
+use crate::domain::{
+    user::User,
+    user_prems::{UserActions, UserPermissions},
+};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct RouteKey {
@@ -12,7 +15,7 @@ pub struct RouteKey {
 #[derive(Debug)]
 pub struct AppCfg {
     pub db_path: String,
-    pub route_perms: HashMap<RouteKey, Vec<UserActions>>,
+    pub route_perms: HashMap<RouteKey, UserPermissions>,
 }
 
 impl AppCfg {
@@ -27,7 +30,7 @@ impl AppCfg {
         &mut self,
         method: Method,
         path: impl Into<String>,
-        perms: Vec<UserActions>,
+        perms: UserPermissions,
     ) {
         let key = RouteKey {
             method,
@@ -37,7 +40,7 @@ impl AppCfg {
         self.route_perms.insert(key, perms);
     }
 
-    pub fn get_route_perms(&self, method: &Method, path: &str) -> Option<&Vec<UserActions>> {
+    pub fn get_route_perms(&self, method: &Method, path: &str) -> Option<UserPermissions> {
         let key = RouteKey {
             method: method.clone(),
             path: path.to_string(),
@@ -46,25 +49,22 @@ impl AppCfg {
         self.route_perms.get(&key)
     }
 
-    pub fn route_allows(&self, method: &Method, path: &str, user_perms: &[UserActions]) -> bool {
-        if user_perms.contains(&UserActions::Root) {
-            return true;
+    pub fn route_allows(&self, method: &Method, path: &str, user_perms: UserPermissions) -> bool {
+        let req_perms = self
+            .get_route_perms(method, path)
+            .ok_or_else(return false)?;
+
+        if req_perms.root == true {
+            if user_perms.root == true {
+                return true;
+            } else {
+                return false;
+            }
         }
 
-        let key = RouteKey {
-            method: method.clone(),
-            path: path.to_string(),
-        };
-
-        let required = match self.route_perms.get(&key) {
-            Some(perms) => perms,
-            None => return true, // no perms required → allow
-        };
-
-        if required.contains(&UserActions::Root) {
-            return false;
-        }
-
-        required.iter().all(|p| user_perms.contains(p))
+        req_perms
+            .permissions
+            .iter()
+            .all(|action| user_perms.permissions.contains(action))
     }
 }
