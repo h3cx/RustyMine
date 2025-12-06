@@ -5,10 +5,7 @@ use axum::{
 };
 use std::collections::HashMap;
 
-use crate::domain::{
-    user::NewUser,
-    user_prems::{InternalUserPermissions, UserActions, UserPermissions},
-};
+use crate::domain::user_prems::{UserActions, UserPermissions};
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct RouteKey {
@@ -19,7 +16,7 @@ pub struct RouteKey {
 #[derive(Debug)]
 pub struct AppCfg {
     pub db_path: String,
-    pub route_perms: HashMap<RouteKey, InternalUserPermissions>,
+    pub route_perms: HashMap<RouteKey, UserPermissions>,
 }
 
 impl AppCfg {
@@ -36,23 +33,21 @@ impl AppCfg {
         path: impl Into<String>,
         root: bool,
         perms: Vec<UserActions>,
-        esc_check: bool,
     ) {
         let key = RouteKey {
             method,
             path: path.into(),
         };
 
-        let user_perms = InternalUserPermissions {
+        let user_perms = UserPermissions {
             root,
             permissions: perms.into_iter().collect(), // Vec → HashSet
-            esc_check,
         };
 
         self.route_perms.insert(key, user_perms);
     }
 
-    pub fn get_route_perms(&self, method: &Method, path: &str) -> Option<InternalUserPermissions> {
+    pub fn get_route_perms(&self, method: &Method, path: &str) -> Option<UserPermissions> {
         let key = RouteKey {
             method: method.clone(),
             path: path.to_string(),
@@ -68,7 +63,7 @@ impl AppCfg {
 
     pub async fn route_allows(
         &self,
-        req: Request,
+        req: &Request,
         user_perms: UserPermissions,
     ) -> Result<bool, StatusCode> {
         let method = req.method();
@@ -87,18 +82,9 @@ impl AppCfg {
             return Ok(true);
         }
 
-        match req_perms
+        Ok(req_perms
             .permissions
             .iter()
-            .all(|action| user_perms.permissions.contains(action))
-        {
-            true => (),
-            false => return Ok(false),
-        };
-
-        if req_perms.esc_check {
-        } else {
-            Ok(true)
-        }
+            .all(|action| user_perms.permissions.contains(action)))
     }
 }

@@ -25,8 +25,11 @@ macro_rules! middleware {
     (cors_auth_perms, $state:expr) => {
         (
             crate::router::middleware::cors(),
-            axum::middleware::from_fn_with_state($state, crate::router::middleware::auth),
-            axum::middleware::from_fn_with_state($state, crate::router::middleware::permissions),
+            axum::middleware::from_fn_with_state($state.clone(), crate::router::middleware::auth),
+            axum::middleware::from_fn_with_state(
+                $state.clone(),
+                crate::router::middleware::permissions,
+            ),
         )
     };
 }

@@ -16,12 +16,6 @@ pub struct UserPermissions {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
-pub struct InternalUserPermissions {
-    pub root: bool,
-    pub permissions: HashSet<UserActions>,
-    pub esc_check: bool,
-}
-#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct ExtUserPermissions {
     pub uuid: Uuid,
     pub root: bool,
