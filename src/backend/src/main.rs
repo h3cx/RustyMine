@@ -78,7 +78,10 @@ async fn main() -> Result<()> {
     let app_result = router::init_router(state.clone()).await;
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-    info!(listen_addr = "0.0.0.0:3000", "http server binding started");
+    info!(
+        listen_addr = "127.0.0.1:3000",
+        "http server binding started"
+    );
 
     axum::serve(listener, app_result).await?;
     info!("http server stopped");

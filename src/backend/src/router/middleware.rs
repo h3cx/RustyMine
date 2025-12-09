@@ -4,7 +4,10 @@ use std::sync::Arc;
 use axum::{
     Extension,
     extract::{MatchedPath, Request, State},
-    http::{self, Method, StatusCode, header::AUTHORIZATION},
+    http::{
+        self, HeaderValue, Method, StatusCode,
+        header::{AUTHORIZATION, CONTENT_TYPE},
+    },
     middleware::Next,
     response::Response,
 };
@@ -101,9 +104,10 @@ pub async fn auth(
 pub fn cors() -> CorsLayer {
     debug!("build cors layer");
     CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods([Method::GET, Method::POST])
-        .allow_headers([AUTHORIZATION])
+        .allow_origin(HeaderValue::from_static("http://localhost:5173"))
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE])
+        .allow_credentials(true)
 }
 
 pub async fn permissions(

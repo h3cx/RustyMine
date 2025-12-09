@@ -53,6 +53,7 @@ pub async fn login(
     jar: CookieJar,
     Json(login_data): Json<LoginData>,
 ) -> Result<(CookieJar, Json<User>), StatusCode> {
+    debug!("login endpoint called");
     let (jwt, user) = core::user_routines::login(state, login_data).await?;
 
     let cookie = Cookie::build(("auth_token", jwt))
