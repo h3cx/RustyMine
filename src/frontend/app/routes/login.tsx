@@ -1,8 +1,10 @@
-import { useState } from "react";
-import { PageShell } from "~/components/PageShell";
-import { Field, FieldGroup, FieldLabel } from "~/components/ui/field";
-import { Input } from "~/components/ui/input";
-import { Button } from "~/components/ui/button";
+import { useState } from "react"
+import { useNavigate } from "react-router"
+
+import { PageShell } from "~/components/PageShell"
+import { Field, FieldGroup, FieldLabel } from "~/components/ui/field"
+import { Input } from "~/components/ui/input"
+import { Button } from "~/components/ui/button"
 import {
   Card,
   CardContent,
@@ -10,50 +12,54 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "~/components/ui/card";
+} from "~/components/ui/card"
+import { loginUser } from "~/lib/api"
 
 export default function Login() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const navigate = useNavigate()
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    console.log("[login] handleSubmit fired");
-    debugger;
+    e.preventDefault()
+    setError(null)
+    setIsSubmitting(true)
 
     try {
-      const res = await fetch("http://127.0.0.1:3000/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ username, password }),
-      });
-
-      console.log("[login] response:", res.status, res.statusText);
+      await loginUser({ username, password })
+      navigate("/dashboard")
     } catch (err) {
-      console.error("[login] fetch error", err);
+      const message = err instanceof Error ? err.message : "Unable to log in"
+      setError(message)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
     <PageShell>
-      <main className="flex justify-center items-center w-full">
-        <Card className="w-96 bg-zinc-900">
+      <main className="flex w-full flex-1 items-center justify-center px-4">
+        <Card className="w-full max-w-md border-border/50 bg-zinc-900">
           <CardHeader>
-            <CardTitle>Login to RustyMine</CardTitle>
-            <CardDescription>Enter your username and password to login</CardDescription>
+            <CardTitle className="text-2xl">Login to RustyMine</CardTitle>
+            <CardDescription>
+              Enter your username and password to access the dashboard
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* IMPORTANT: no action="", no method="" */}
-            <form onSubmit={handleSubmit}>
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="username">Username</FieldLabel>
                   <Input
                     id="username"
                     name="username"
+                    autoComplete="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
+                    disabled={isSubmitting}
                     required
                   />
                 </Field>
@@ -63,20 +69,28 @@ export default function Login() {
                     id="password"
                     name="password"
                     type="password"
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    disabled={isSubmitting}
                     required
                   />
                 </Field>
               </FieldGroup>
 
-              <CardFooter className="mt-4 px-0">
+              {error && (
+                <p className="text-sm text-destructive" role="alert">
+                  {error}
+                </p>
+              )}
+
+              <CardFooter className="px-0">
                 <Button
                   type="submit"
                   className="w-full"
-                  onClick={() => console.log("[login] button clicked")}
+                  disabled={isSubmitting}
                 >
-                  Login
+                  {isSubmitting ? "Signing in..." : "Login"}
                 </Button>
               </CardFooter>
             </form>
@@ -84,5 +98,5 @@ export default function Login() {
         </Card>
       </main>
     </PageShell>
-  );
+  )
 }
